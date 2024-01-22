@@ -12,15 +12,14 @@ pwd = config.get_db_config("password")
 if not host or not port or not db or not user or not pwd:
     raise ValueError("Please complete the database configuration")
 
-
 engine = create_engine(f"postgresql://{user}:{pwd}@{host}:{port}/{db}")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
 def get_db():
-    db = SessionLocal()
+    database = SessionLocal()
     try:
-        yield db
+        yield database
     finally:
-        db.close()
+        database.close()

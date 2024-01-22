@@ -7,9 +7,13 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 
 from Services.Database.database import get_db
-from Services.Security.user import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user
-from Models.database import UserDb
-from Models.user import Token
+from Services.Security.user import (
+    ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user,
+    encrypt_src_password, decrypt_src_password)
+from Models.database import UserDb, PwdDb
+from Models.user import Token, User
+from Models.response import ExceptionResponse, StandardResponse
+from Models.requests import SourceStorageReq
 
 user_router = APIRouter(prefix="/user")
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -24,8 +28,7 @@ async def user_reg(email: str = Form(), username: str = Form(), password: str = 
             username=username,
             hashed_password=pwd_ctx.hash(password),
             created_at=datetime.now(),
-        )
-        )
+        ))
         db.commit()
         return Response(status_code=201)
     except IntegrityError:
@@ -34,7 +37,7 @@ async def user_reg(email: str = Form(), username: str = Form(), password: str = 
 
 @user_router.post("/login")
 async def user_login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user: UserDb = db.query(UserDb).filter(UserDb.username == body.username).first()
+    user: UserDb = db.query(UserDb).filter(UserDb.username == body.username).first()  # type: ignore
     if user is not None and pwd_ctx.verify(body.password, user.hashed_password):
         token = create_access_token(
             data={"sub": user.email, "id": user.uid},
@@ -42,13 +45,46 @@ async def user_login(body: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
         return Token(access_token=token, token_type="bearer")
     else:
-        raise HTTPException(
-            status_code=401,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise ExceptionResponse.auth
 
 
 @user_router.get("/profile")
-async def user_profile(user: UserDb = Depends(get_current_user)):
+async def user_profile(user: User = Depends(get_current_user)):
     return user
+
+
+@user_router.post("/encrypt/{src_id}")
+async def src_pwd_storage(src_id: str, body: SourceStorageReq, db: Session = Depends(get_db),
+                          user: User = Depends(get_current_user)):
+    record: PwdDb = db.query(PwdDb).filter(
+        PwdDb.src_id == src_id and PwdDb.uid == user.uid and PwdDb.account == body.account).first()  # type: ignore
+
+    if record is None:
+        db.add(PwdDb(src_id=src_id, uid=user.uid, account=body.account,
+                     pwd=encrypt_src_password(body.key_pwd, body.src_pwd)))
+        db.commit()
+        return Response(status_code=201)
+    else:
+        record.pwd = encrypt_src_password(body.key_pwd, body.src_pwd)
+        db.commit()
+        return Response(status_code=200)
+
+
+@user_router.get("/accounts/{src_id}")
+async def src_pwd_retrieval(src_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    records: list[PwdDb] = db.query(PwdDb).filter(
+        PwdDb.src_id == src_id and PwdDb.uid == user.uid).all()  # type: ignore
+
+    return StandardResponse(data=[record.account for record in records])
+
+
+@user_router.get("/decrypt/{src_id}")
+async def src_pwd_retrieval(src_id: str, account: str, db: Session = Depends(get_db),
+                            user: User = Depends(get_current_user)):
+    record: PwdDb = db.query(PwdDb).filter(
+        PwdDb.src_id == src_id and PwdDb.uid == user.uid and PwdDb.account == account).first()  # type: ignore
+
+    if record is None:
+        raise ExceptionResponse.not_found
+    else:
+        return StandardResponse(data=decrypt_src_password(record.pwd, record.src_id))

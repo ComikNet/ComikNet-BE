@@ -1,13 +1,16 @@
 from datetime import timedelta, datetime, UTC
 import os
 from jose import jwt, JWTError
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 
 from Services.Database.database import get_db
 from Models.database import UserDb
 from Models.user import User
+from Models.response import ExceptionResponse
 
 SECRET_KEY: str | None = os.environ.get("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -33,21 +36,26 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         uid: str = payload["id"]
         if uid is None:
-            raise credentials_exception
+            raise ExceptionResponse.auth
     except JWTError:
-        raise credentials_exception
+        raise ExceptionResponse.auth
 
-    user: UserDb = db.query(UserDb).filter(UserDb.uid == uid).first()
+    user: UserDb = db.query(UserDb).filter(UserDb.uid == uid).first()  # type: ignore
     if user is None:
-        raise credentials_exception
+        raise ExceptionResponse.auth
 
     return User(uid=user.uid, email=user.email, username=user.username, created_at=user.created_at)
+
+
+def encrypt_src_password(key: str, src_pwd: str) -> str:
+    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
+    return cipher.encrypt(pad(src_pwd.encode("utf-8"), AES.block_size)).hex()
+
+
+def decrypt_src_password(key: str, encrypted_pwd: str) -> str:
+    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
+    return unpad(cipher.decrypt(bytes.fromhex(encrypted_pwd)), AES.block_size).decode("utf-8")
