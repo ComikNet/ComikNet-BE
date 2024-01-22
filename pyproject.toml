@@ -5,6 +5,9 @@ description = ""
 authors = ["BiDuang <me@biduang.cn>"]
 license = "Apache-2.0"
 readme = "README.md"
+packages = [
+    { include = "comiknet-be" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
