@@ -1,17 +1,21 @@
 import json
-from typing import Any
 
 
 class Config:
     def __init__(self, config_path: str):
         with open(config_path, "r") as f:
-            self.config = json.load(f)
+            self.config: dict = json.load(f)
 
-    def get_db_config(self, key: str) -> Any | None:
-        try:
-            return self.config["database"][key]
-        except:
-            return None
+    def get_config(self, *keys) -> object | None:
+        keys = [*keys]
+        result: object | None = self.config
+        while len(keys) > 0:
+            key = keys.pop(0)
+            if (isinstance(result, list) and key < len(result)) or (isinstance(result, dict) and key in result.keys()):
+                result = result[key]
+            else:
+                return None
+        return result
 
 
 config = Config("Configs/config.json")

@@ -4,11 +4,11 @@ from sqlalchemy.orm import sessionmaker
 
 from Configs.config import config
 
-host = config.get_db_config("host")
-port = config.get_db_config("port")
-db = config.get_db_config("database")
-user = config.get_db_config("user")
-pwd = config.get_db_config("password")
+host = config.get_config("database", "host")
+port = config.get_config("database", "port")
+db = config.get_config("database", "database")
+user = config.get_config("database", "user")
+pwd = config.get_config("database", "password")
 if not host or not port or not db or not user or not pwd:
     raise ValueError("Please complete the database configuration")
 

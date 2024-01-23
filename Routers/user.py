@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Response, Depends, HTTPException, Form
+from fastapi import APIRouter, Response, Depends, HTTPException, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime, timedelta
 
 from Services.Database.database import get_db
+from Services.Limiter.limiter import limiter
 from Services.Security.user import (
     ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user,
     encrypt_src_password, decrypt_src_password)
@@ -20,23 +20,26 @@ pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @user_router.post("/reg")
-async def user_reg(email: str = Form(), username: str = Form(), password: str = Form(), db: Session = Depends(get_db)):
-    try:
-        db.add(UserDb(
-            uid=uuid4().hex,
-            email=email,
-            username=username,
-            hashed_password=pwd_ctx.hash(password),
-            created_at=datetime.now(),
-        ))
-        db.commit()
-        return Response(status_code=201)
-    except IntegrityError:
+async def user_reg(email: str = Form(), username: str = Form(), password: str = Form(),
+                   db: Session = Depends(get_db)):
+    if db.query(UserDb).filter(
+            UserDb.email == email or UserDb.username == username).first() is not None:  # type: ignore
         raise HTTPException(status_code=409, detail="User already exists")
+
+    db.add(UserDb(
+        uid=uuid4().hex,
+        email=email,
+        username=username,
+        hashed_password=pwd_ctx.hash(password),
+        created_at=datetime.now(),
+    ))
+    db.commit()
+    return Response(status_code=201)
 
 
 @user_router.post("/login")
-async def user_login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def user_login(request: Request, body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user: UserDb = db.query(UserDb).filter(UserDb.username == body.username).first()  # type: ignore
     if user is not None and pwd_ctx.verify(body.password, user.hashed_password):
         token = create_access_token(

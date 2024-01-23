@@ -1,5 +1,6 @@
-from fastapi import status, HTTPException
+from fastapi import status, HTTPException, Request
 from pydantic import BaseModel
+from slowapi.errors import RateLimitExceeded
 
 
 class ExceptionResponse:
@@ -16,6 +17,14 @@ class ExceptionResponse:
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not found",
+        )
+
+    @staticmethod
+    def limit_exceeded(request: Request, exc: RateLimitExceeded):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests",
+            headers={"Detail": exc.detail},
         )
 
 
