@@ -182,5 +182,5 @@ pyrightconfig.json
 # poetry version lock
 poetry.lock
 
-# personal config
-Configs/config.json
+# user's local config
+comiknet-be/Configs/config.json
