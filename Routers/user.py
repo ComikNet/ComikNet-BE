@@ -20,7 +20,8 @@ pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @user_router.post("/reg")
-async def user_reg(email: str = Form(), username: str = Form(), password: str = Form(),
+@limiter.limit("5/minute")
+async def user_reg(request: Request, email: str = Form(), username: str = Form(), password: str = Form(),
                    db: Session = Depends(get_db)):
     if db.query(UserDb).filter(
             UserDb.email == email or UserDb.username == username).first() is not None:  # type: ignore
@@ -53,11 +54,11 @@ async def user_login(request: Request, body: OAuth2PasswordRequestForm = Depends
 
 @user_router.get("/profile")
 async def user_profile(user: User = Depends(get_current_user)):
-    return user
+    return StandardResponse(data=user)
 
 
 @user_router.post("/encrypt/{src_id}")
-async def src_pwd_storage(src_id: str, body: SourceStorageReq, db: Session = Depends(get_db),
+async def encrypt_src_pwd(src_id: str, body: SourceStorageReq, db: Session = Depends(get_db),
                           user: User = Depends(get_current_user)):
     record: PwdDb = db.query(PwdDb).filter(
         PwdDb.src_id == src_id and PwdDb.uid == user.uid and PwdDb.account == body.account).first()  # type: ignore
@@ -74,7 +75,7 @@ async def src_pwd_storage(src_id: str, body: SourceStorageReq, db: Session = Dep
 
 
 @user_router.get("/accounts/{src_id}")
-async def src_pwd_retrieval(src_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+async def get_src_accounts(src_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     records: list[PwdDb] = db.query(PwdDb).filter(
         PwdDb.src_id == src_id and PwdDb.uid == user.uid).all()  # type: ignore
 
@@ -82,8 +83,8 @@ async def src_pwd_retrieval(src_id: str, db: Session = Depends(get_db), user: Us
 
 
 @user_router.get("/decrypt/{src_id}")
-async def src_pwd_retrieval(src_id: str, account: str, db: Session = Depends(get_db),
-                            user: User = Depends(get_current_user)):
+async def decrypt_src_pwd(src_id: str, account: str, db: Session = Depends(get_db),
+                          user: User = Depends(get_current_user)):
     record: PwdDb = db.query(PwdDb).filter(
         PwdDb.src_id == src_id and PwdDb.uid == user.uid and PwdDb.account == account).first()  # type: ignore
 
