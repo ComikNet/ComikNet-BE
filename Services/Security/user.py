@@ -1,5 +1,5 @@
-from datetime import timedelta, datetime, UTC
 import os
+from datetime import timedelta, datetime, UTC
 from jose import jwt, JWTError
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer

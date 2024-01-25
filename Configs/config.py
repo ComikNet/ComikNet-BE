@@ -3,7 +3,7 @@ import json
 
 class Config:
     def __init__(self, config_path: str):
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             self.config: dict = json.load(f)
 
     def get_config(self, *keys) -> object | None:

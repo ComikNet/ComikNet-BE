@@ -184,3 +184,6 @@ poetry.lock
 
 # personal config
 Configs/config.json
+
+# plugins
+Plugins/*

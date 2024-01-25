@@ -13,7 +13,7 @@ if not host or not port or not db or not user or not pwd:
     raise ValueError("Please complete the database configuration")
 
 engine = create_engine(f"postgresql://{user}:{pwd}@{host}:{port}/{db}")
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, bind=engine)
 Base = declarative_base()
 
 

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Response, Depends, HTTPException, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
@@ -13,10 +15,11 @@ from Services.Security.user import (
 from Models.database import UserDb, PwdDb
 from Models.user import Token, User
 from Models.response import ExceptionResponse, StandardResponse
-from Models.requests import SourceStorageReq
+from Models.requests import SourceStorageReq, SourceLoginReq
 
 user_router = APIRouter(prefix="/user")
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 
 @user_router.post("/reg")
@@ -57,7 +60,12 @@ async def user_profile(user: User = Depends(get_current_user)):
     return StandardResponse(data=user)
 
 
-@user_router.post("/encrypt/{src_id}")
+@user_router.post("/{src_id}/login")
+async def src_login(body: SourceLoginReq):
+    pass
+
+
+@user_router.post("/{src_id}/encrypt")
 async def encrypt_src_pwd(src_id: str, body: SourceStorageReq, db: Session = Depends(get_db),
                           user: User = Depends(get_current_user)):
     record: PwdDb = db.query(PwdDb).filter(
@@ -74,7 +82,7 @@ async def encrypt_src_pwd(src_id: str, body: SourceStorageReq, db: Session = Dep
         return Response(status_code=200)
 
 
-@user_router.get("/accounts/{src_id}")
+@user_router.get("/{src_id}/accounts")
 async def get_src_accounts(src_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     records: list[PwdDb] = db.query(PwdDb).filter(
         PwdDb.src_id == src_id and PwdDb.uid == user.uid).all()  # type: ignore
@@ -82,7 +90,7 @@ async def get_src_accounts(src_id: str, db: Session = Depends(get_db), user: Use
     return StandardResponse(data=[record.account for record in records])
 
 
-@user_router.get("/decrypt/{src_id}")
+@user_router.get("/{src_id}/decrypt")
 async def decrypt_src_pwd(src_id: str, account: str, db: Session = Depends(get_db),
                           user: User = Depends(get_current_user)):
     record: PwdDb = db.query(PwdDb).filter(
