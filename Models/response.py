@@ -4,20 +4,16 @@ from slowapi.errors import RateLimitExceeded
 
 
 class ExceptionResponse:
-    @property
-    def auth(self) -> HTTPException:
-        return HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    auth = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    @property
-    def not_found(self) -> HTTPException:
-        return HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not found",
-        )
+    not_found = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Not found",
+    )
 
     @staticmethod
     def limit_exceeded(request: Request, exc: RateLimitExceeded):

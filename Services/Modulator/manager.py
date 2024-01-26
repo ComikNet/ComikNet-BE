@@ -18,6 +18,7 @@ class PluginManager:
         else:
             self.strict = strict
         self.plugins: Set[Plugin] = set()
+        self.registered_source: Set[str] = set()
 
     def load_plugins(self) -> None:
         for plugin in os.listdir("Plugins"):
@@ -36,6 +37,15 @@ class PluginManager:
             with open(plugin_dir.joinpath(f"{plugin_dir.name}.toml"), "r", encoding="utf-8") as f:
                 plugin_info = toml.load(f)
 
+            for src in plugin_info["plugin"]["source"]:
+                if src in self.registered_source:
+                    logger.error(
+                        f"Failed to load {plugin_dir.name}, {plugin_info['plugin']['source']} has already been registered")
+                    return False
+                else:
+                    logger.info(f"Registered source {src}")
+                    self.registered_source.add(src)
+
             module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
             if issubclass(entry := getattr(module, plugin_dir.name), BasePlugin):
                 instance = entry()
@@ -43,7 +53,8 @@ class PluginManager:
                     self.plugins.add(
                         Plugin(name=plugin_info["description"]["name"], version=plugin_info["description"]["version"],
                                cnm_version=plugin_info["plugin"]["cnm-version"],
-                               source=plugin_info["plugin"]["source"], instance=instance))
+                               service=plugin_info["service"], source=plugin_info["plugin"]["source"],
+                               instance=instance))
                 else:
                     raise ImportError
                 logger.info(f"Loaded plugin {plugin_dir.name}")
@@ -69,3 +80,14 @@ class PluginManager:
             plugin = self.plugins.pop()
             plugin.instance.on_unload()
             logger.info(f"Unloaded plugin {plugin.name}")
+
+    def get_source(self, source: str) -> Plugin | None:
+        if source in self.registered_source:
+            for plugin in self.plugins:
+                if source in plugin.source:
+                    return plugin
+        else:
+            return None
+
+
+plugin_manager = PluginManager()

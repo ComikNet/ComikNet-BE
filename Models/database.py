@@ -16,7 +16,7 @@ class UserDb(Base):
 class PwdDb(Base):
     __tablename__ = "src_pwd"
     id = Column(INT, unique=True, primary_key=True, index=True, nullable=False)
-    src_id = Column(TEXT, index=True, nullable=False)
+    source = Column(TEXT, index=True, nullable=False)
     uid = Column(TEXT, index=True, nullable=False)
     account = Column(TEXT, nullable=False)
     pwd = Column(TEXT, nullable=False)

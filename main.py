@@ -7,7 +7,7 @@ from rich.logging import RichHandler
 from Routers.user import user_router
 from Models.response import ExceptionResponse
 from Services.Limiter.limiter import limiter
-from Services.Modulator.manager import PluginManager
+from Services.Modulator.manager import plugin_manager
 
 logging.basicConfig(level="INFO", format="%(message)s", datefmt="[%X]",
                     handlers=[RichHandler(rich_tracebacks=True, tracebacks_suppress=[fastapi])])
@@ -23,7 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-manager = PluginManager()
-manager.load_plugins()
+plugin_manager.load_plugins()
 
 app.include_router(user_router)
