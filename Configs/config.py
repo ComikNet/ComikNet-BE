@@ -11,7 +11,9 @@ class Config:
         result: object | None = self.config
         while len(keys) > 0:
             key = keys.pop(0)
-            if (isinstance(result, list) and key < len(result)) or (isinstance(result, dict) and key in result.keys()):
+            if (isinstance(result, list) and key < len(result)) or (
+                isinstance(result, dict) and key in result.keys()
+            ):
                 result = result[key]
             else:
                 return None

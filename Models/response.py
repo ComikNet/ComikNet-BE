@@ -24,10 +24,12 @@ class ExceptionResponse:
         )
 
 
-class StandardResponse(BaseModel):
+class StandardResponse[T](BaseModel):
     status_code: int
     message: str | None
-    data: object | None
+    data: T | None
 
-    def __init__(self, status_code: int = 200, message: str | None = None, data: object | None = None):
+    def __init__(
+        self, status_code: int = 200, message: str | None = None, data: T | None = None
+    ):
         super().__init__(status_code=status_code, message=message, data=data)
