@@ -25,6 +25,12 @@ class ExceptionResponse:
 
 
 class StandardResponse[T](BaseModel):
+    """
+    Standard Response Model
+    ~~~~~~~~~~~~~~~~~~~~~
+    This model is the default web response format of the API.
+    """
+
     status_code: int
     message: str | None
     data: T | None

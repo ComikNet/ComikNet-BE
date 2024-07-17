@@ -1,5 +1,4 @@
-from sqlalchemy.sql.elements import ColumnElement
-from typing import Type, cast, Any
+from typing import Any, Type, cast
 
 
 def sql_typecast[T](value: Any, target_type: Type[T]) -> T:

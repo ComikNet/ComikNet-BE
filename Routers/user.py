@@ -1,31 +1,30 @@
 import logging
 import typing
+from datetime import datetime, timedelta
+from uuid import uuid4
 
-import sqlalchemy
-
-from sqlalchemy import Column, Text
-from Models.plugins import IAuth
-from fastapi import APIRouter, Response, Depends, HTTPException, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
+from sqlalchemy import Column, Text
 from sqlalchemy.orm import Session
-from uuid import uuid4
-from datetime import datetime, timedelta
 
+from Models.database import PwdDb, UserDb
+from Models.plugins import IAuth
+from Models.requests import SourceStorageReq
+from Models.response import ExceptionResponse, StandardResponse
+from Models.user import Token, User, UserData
 from Services.Database.database import get_db
-from Services.Modulator.manager import plugin_manager
 from Services.Limiter.limiter import limiter
+from Services.Modulator.manager import PluginUtils, plugin_manager
 from Services.Security.user import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     create_access_token,
-    get_current_user,
-    encrypt_src_password,
     decrypt_src_password,
+    encrypt_src_password,
+    get_current_user,
+    get_user_data,
 )
-from Models.database import UserDb, PwdDb
-from Models.user import Token, User
-from Models.response import ExceptionResponse, StandardResponse
-from Models.requests import SourceStorageReq
 from Utils.convert import sql_typecast
 
 user_router = APIRouter(prefix="/user")
@@ -66,6 +65,7 @@ async def user_reg(
 @user_router.post("/login")
 @limiter.limit("5/minute")
 async def user_login(
+    request: Request,
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
@@ -99,19 +99,24 @@ async def src_login_info(src: str):
 
 
 @user_router.post("/{src}/login")
-async def src_login(src: str, body: dict[str, str]):
-    if (source := plugin_manager.get_source(src)) is None or not isinstance(
-        source.instance, IAuth
-    ):
-        raise ExceptionResponse.not_found
-
+async def src_login(
+    response: Response,
+    src: str,
+    body: dict[str, str],
+    user_data: UserData = Depends(get_user_data),
+):
     if (
-        not isinstance(source.service.get("login"), list)
+        (source := plugin_manager.get_source(src)) is None
+        or not isinstance(source.instance, IAuth)
+        or not isinstance(source.service.get("login"), list)
         or source.service["login"] == []
     ):
         raise ExceptionResponse.not_found
 
-    result = source.instance.login(body)
+    result = await source.instance.login(body, user_data)
+    response.set_cookie(key="plugin_cookies", value=user_data.__str__())
+
+    return result
 
 
 @user_router.post("/{src_id}/encrypt")

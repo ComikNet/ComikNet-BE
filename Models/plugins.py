@@ -1,7 +1,15 @@
+import asyncio
+import inspect
 from abc import ABC, abstractmethod
+from typing import Any
 
-from Models.response import StandardResponse
+import nest_asyncio
+
 from Models.comic import BaseComicInfo
+from Models.response import StandardResponse
+from Models.user import User, UserData
+
+nest_asyncio.apply()
 
 
 class BasePlugin(ABC):
@@ -17,13 +25,13 @@ class BasePlugin(ABC):
         pass
 
 
-class IAuth:
+class IAuth(ABC):
     @abstractmethod
-    def login(self, body: dict[str, str]) -> StandardResponse:
+    async def login(self, body: dict[str, str], user: UserData) -> StandardResponse:
         pass
 
 
-class IShaper:
+class IShaper(ABC):
     @abstractmethod
     def imager_shaper(self):
         pass
@@ -34,7 +42,7 @@ class Plugin:
     version: str
     cnm_version: str
     source: list[str]
-    service: dict
+    service: dict[str, list[str]]
     instance: BasePlugin
 
     def __init__(
@@ -43,10 +51,24 @@ class Plugin:
         version: str,
         cnm_version: str,
         source: list[str],
+        service: dict[str, list[str]],
         instance: BasePlugin,
     ):
         self.name = name
         self.version = version
         self.cnm_version = cnm_version
         self.source = source
+        self.service = service
         self.instance = instance
+
+    def try_call(self, method: str, *args: Any, **kwargs: Any) -> Any:
+        if hasattr(self.instance, method):
+            if inspect.iscoroutinefunction(getattr(self.instance, method)):
+                loop = asyncio.get_event_loop()
+                return loop.run_until_complete(
+                    getattr(self.instance, method)(*args, **kwargs)
+                )
+            else:
+                return getattr(self.instance, method)(*args, **kwargs)
+        else:
+            return None

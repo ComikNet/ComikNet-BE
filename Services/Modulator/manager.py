@@ -1,12 +1,16 @@
 import importlib
+import json
 import logging
 import os
-import toml
+from http.cookies import BaseCookie
 from pathlib import Path
-from typing import Set
+from typing import Set, cast
 
-from Models.plugins import BasePlugin, Plugin
+import toml
+from fastapi import Response
+
 from Configs.config import config
+from Models.plugins import BasePlugin, Plugin
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +54,9 @@ class PluginManager:
                     )
                     return False
                 else:
-                    logger.info(f"Registered source {src}")
-                    self.registered_source.add(src)
+                    logger.info(f"Registering source {src}")
 
-            module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
+                module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
             if issubclass(entry := getattr(module, plugin_dir.name), BasePlugin):
                 instance = entry()
                 if instance.on_load():
@@ -63,16 +66,23 @@ class PluginManager:
                             version=plugin_info["description"]["version"],
                             cnm_version=plugin_info["plugin"]["cnm-version"],
                             source=plugin_info["plugin"]["source"],
+                            service=plugin_info["service"],
                             instance=instance,
                         )
                     )
                 else:
                     raise ImportError
-                logger.info(f"Loaded plugin {plugin_dir.name}")
+                logger.info(f"Plugin {plugin_dir.name} Loaded")
+                self.registered_source.add(src)
                 return True
             else:
                 logger.error(f"Plugin {plugin_dir.name} is not a valid plugin")
                 return False
+        except ModuleNotFoundError as module_err:
+            logger.error(
+                f"Failed to load {plugin_dir.name}, plugin requires some dependencies: {module_err.msg}"
+            )
+            return False
         except FileNotFoundError:
             logger.error(f"Failed to load plugin {plugin_dir.name}'s information")
             return False
@@ -101,6 +111,27 @@ class PluginManager:
                     return plugin
         else:
             return None
+
+
+class PluginUtils:
+    @staticmethod
+    def load_cookies(cookies_str: str | None) -> dict[str, BaseCookie[str]]:
+        cookies = dict[str, BaseCookie[str]]()
+        if cookies_str is None or cookies_str == "":
+            return cookies
+
+        try:
+            plugin_cookies: dict[str, str] = json.loads(cookies_str)
+
+            for src in plugin_manager.registered_source:
+                if src in plugin_cookies:
+                    cookies[src] = BaseCookie[str](plugin_cookies[src])
+                else:
+                    cookies[src] = BaseCookie[str]()
+        except:
+            logger.warning("Failed to load cookies")
+
+        return cookies
 
 
 plugin_manager = PluginManager()

@@ -1,22 +1,24 @@
 import os
 from datetime import timedelta, datetime, UTC
+from typing import Annotated
 from jose import jwt, JWTError
-from fastapi import Depends
+from fastapi import Cookie, Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 from Services.Database.database import get_db
+from Services.Modulator.manager import PluginUtils
 from Models.database import UserDb
-from Models.user import User
+from Models.user import User, UserData
 from Models.response import ExceptionResponse
 
 SECRET_KEY: str | None = os.environ.get("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-if not SECRET_KEY or SECRET_KEY.__len__() != 32:
+if not SECRET_KEY or SECRET_KEY.__len__() < 32:
     raise ValueError(
         "Please set `SECRET_KEY` environment variable, you can generate one with `openssl rand -hex 32`"
     )
@@ -49,12 +51,20 @@ def get_current_user(
     user: UserDb | None = db.query(UserDb).filter(UserDb.uid == uid).first()
     if user is None:
         raise ExceptionResponse.auth
-
     return User(
         uid=user.uid,
         email=user.email,
         username=user.username,
         created_at=user.created_at,
+    )
+
+
+def get_user_data(
+    plugin_cookies: Annotated[str | None, Cookie()] = None,
+    user: User = Depends(get_current_user),
+):
+    return UserData(
+        uid=user.uid, plugin_cookies=PluginUtils.load_cookies(plugin_cookies)
     )
 
 

@@ -15,7 +15,7 @@ if not host or not port or not db:
     raise ValueError("Please complete the database configuration")
 
 engine = create_engine(f"{protocol}://{auth}{host}:{port}/{db}")
-SessionLocal = sessionmaker(autocommit=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, bind=engine, expire_on_commit=True)
 Base = declarative_base()
 
 
