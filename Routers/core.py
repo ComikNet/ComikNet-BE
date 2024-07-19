@@ -12,5 +12,9 @@ core_router = APIRouter(prefix="/core")
 
 
 @core_router.get("/ping")
-async def get_status() -> StandardResponse:
+async def get_status():
     return StandardResponse(message="pong")
+
+@core_router.get("/protocol")
+async def get_cnm_version():
+    pass

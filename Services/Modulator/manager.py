@@ -4,10 +4,9 @@ import logging
 import os
 from http.cookies import BaseCookie
 from pathlib import Path
-from typing import Set, cast
+from typing import Set
 
 import toml
-from fastapi import Response
 
 from Configs.config import config
 from Models.plugins import BasePlugin, Plugin
@@ -47,6 +46,7 @@ class PluginManager:
             ) as f:
                 plugin_info = toml.load(f)
 
+            src_list: list[str] = []
             for src in plugin_info["plugin"]["source"]:
                 if src in self.registered_source:
                     logger.error(
@@ -55,8 +55,10 @@ class PluginManager:
                     return False
                 else:
                     logger.info(f"Registering source {src}")
+                    src_list.append(src)
 
-                module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
+            module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
+
             if issubclass(entry := getattr(module, plugin_dir.name), BasePlugin):
                 instance = entry()
                 if instance.on_load():
@@ -73,7 +75,7 @@ class PluginManager:
                 else:
                     raise ImportError
                 logger.info(f"Plugin {plugin_dir.name} Loaded")
-                self.registered_source.add(src)
+                self.registered_source.update(src_list)
                 return True
             else:
                 logger.error(f"Plugin {plugin_dir.name} is not a valid plugin")

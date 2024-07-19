@@ -20,6 +20,9 @@ class UserData:
         self.uid = uid
         self.plugin_cookies = plugin_cookies
 
+    def set_src_cookies(self, src: str, cookies: BaseCookie[str]) -> None:
+        self.plugin_cookies[src] = cookies
+
     def get_src_cookies(self, src: str) -> BaseCookie[str]:
         if src in self.plugin_cookies:
             return self.plugin_cookies[src]

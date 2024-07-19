@@ -27,7 +27,7 @@ class BasePlugin(ABC):
 
 class IAuth(ABC):
     @abstractmethod
-    async def login(self, body: dict[str, str], user: UserData) -> StandardResponse:
+    async def login(self, body: dict[str, str], user_data: UserData) -> StandardResponse:
         pass
 
 

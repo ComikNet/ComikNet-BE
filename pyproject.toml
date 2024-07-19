@@ -19,6 +19,8 @@ pycryptodome = "^3.20.0"
 rich = "^13.7.0"
 slowapi = "^0.1.8"
 toml = "^0.10.2"
+nest-asyncio = "^1.6.0"
+pymysql = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]

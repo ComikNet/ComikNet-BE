@@ -1,12 +1,13 @@
-from pydantic import BaseModel
+from typing import Any
 
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 
 
 class BaseComicInfo(BaseModel):
     """BaseComicInfo"""
+
     """作者，漫画作者"""
-    author: List[str]
+    author: list[str]
     """封面，漫画封面图片URL"""
     cover: str
     """标识符，漫画在所属平台的索引ID"""
@@ -17,25 +18,26 @@ class BaseComicInfo(BaseModel):
 
 class ComicInfo(BaseModel):
     """ComicInfo"""
+
     """章节数，漫画章节数"""
-    chapters: Optional[int] = None
+    chapters: int | None = None
     """评论量，漫画评论量"""
-    comments: Optional[int] = None
+    comments: int | None = None
     """简介，漫画简介"""
-    description: Optional[str] = None
+    description: str | None = None
     """额外信息，源平台携带的其它漫画信息"""
-    extras: Optional[Dict[str, Any]] = None
+    extras: dict[str, Any] | None = None
     """收藏量，漫画收藏量"""
-    favorites: Optional[int] = None
+    favorites: int | None = None
     """已收藏，漫画是否已收藏"""
-    is_favorite: Optional[bool] = None
+    is_favorite: bool | None = None
     """已完结，漫画是否已完结"""
-    is_finished: Optional[bool] = None
+    is_finished: bool | None = None
     """已阅读，漫画是否已阅读"""
-    is_viewed: Optional[bool] = None
+    is_viewed: bool | None = None
     """标签，漫画标签"""
-    tags: Optional[List[str]] = None
+    tags: list[str] | None = None
     """更新时间，漫画最近的更新时间戳"""
-    updated_at: Optional[int] = None
+    updated_at: int | None = None
     """阅读量，漫画阅读量"""
-    views: Optional[int] = None
+    views: int | None = None

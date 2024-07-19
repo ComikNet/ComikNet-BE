@@ -129,7 +129,7 @@ async def encrypt_src_pwd(
     record: PwdDb | None = (
         db.query(PwdDb)
         .filter(
-            PwdDb.src_id == src_id
+            PwdDb.source == src_id
             and PwdDb.uid == user.uid
             and PwdDb.account == body.account
         )
@@ -160,7 +160,7 @@ async def get_src_accounts(
     src: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     records: list[PwdDb] = (
-        db.query(PwdDb).filter(PwdDb.src_id == src and PwdDb.uid == user.uid).all()
+        db.query(PwdDb).filter(PwdDb.source == src and PwdDb.uid == user.uid).all()
     )
 
     return StandardResponse(data=[record.account for record in records])
@@ -176,7 +176,7 @@ async def decrypt_src_pwd(
     record: PwdDb | None = (
         db.query(PwdDb)
         .filter(
-            PwdDb.src_id == src and PwdDb.uid == user.uid and PwdDb.account == account
+            PwdDb.source == src and PwdDb.uid == user.uid and PwdDb.account == account
         )
         .first()
     )
@@ -184,4 +184,4 @@ async def decrypt_src_pwd(
     if record is None:
         raise ExceptionResponse.not_found
     else:
-        return StandardResponse(data=decrypt_src_password(record.pwd, record.src_id))
+        return StandardResponse(data=decrypt_src_password(record.pwd, record.source))
