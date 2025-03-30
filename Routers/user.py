@@ -190,7 +190,9 @@ async def user_src_login(
     if result.status_code != 200:
         raise HTTPException(status_code=400, detail=f"Failed to login to source {src}")
 
-    response.set_cookie(key="plugin_data", value=user_data.__str__())
+    response.set_cookie(
+        key="plugin_data", value=user_data.__str__(), secure=True, httponly=True
+    )
     return result
 
 
@@ -265,5 +267,7 @@ async def user_src_autologin(
             status_code=400, detail=f"Failed to auto login to source {src}"
         )
 
-    response.set_cookie(key="plugin_data", value=user_data.__str__())
+    response.set_cookie(
+        key="plugin_data", value=user_data.__str__(), secure=True, httponly=True
+    )
     return result
