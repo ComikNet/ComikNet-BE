@@ -187,7 +187,7 @@ Services/Config/config.toml
 Services/Config/config.json
 
 # plugins
-Plugins/*
+Plugins/*/
 
 # version lock
 uv.lock
