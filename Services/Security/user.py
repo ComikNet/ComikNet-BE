@@ -1,39 +1,34 @@
-import os
-from datetime import timedelta, datetime, UTC
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
-from jose import jwt, JWTError
-from fastapi import Cookie, Depends, Request
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+
+import jwt
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+from fastapi import Cookie, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jwt import InvalidTokenError
+from sqlalchemy.orm import Session
 
+from Models.database import UserDb
+from Models.user import TokenData, User, UserData
+from Services.Config.config import config
 from Services.Database.database import get_db
 from Services.Modulator.manager import PluginUtils
-from Models.database import UserDb
-from Models.user import User, UserData
-from Models.response import ExceptionResponse
-
-SECRET_KEY: str | None = os.environ.get("SECRET_KEY")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-if not SECRET_KEY or SECRET_KEY.__len__() < 32:
-    raise ValueError(
-        "Please set `SECRET_KEY` environment variable, you can generate one with `openssl rand -hex 32`"
-    )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = config.security.secret_key
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
+def create_access_token(data: TokenData, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.model_copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=30)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.exp = expire
+    encoded_jwt = jwt.encode(to_encode.model_dump(), SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -44,15 +39,23 @@ def get_current_user(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         uid: str = payload["id"]
         if uid is None:
-            raise ExceptionResponse.auth
-    except JWTError:
-        raise ExceptionResponse.auth
+            raise InvalidTokenError
+    except InvalidTokenError:
+        raise HTTPException(
+            401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     user: UserDb | None = db.query(UserDb).filter(UserDb.uid == uid).first()
     if user is None:
-        raise ExceptionResponse.auth
+        raise HTTPException(
+            401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return User(
-        uid=user.uid,
+        user_id=user.uid,
         email=user.email,
         username=user.username,
         created_at=user.created_at,
@@ -64,17 +67,17 @@ def get_user_data(
     user: User = Depends(get_current_user),
 ):
     return UserData(
-        uid=user.uid, plugin_cookies=PluginUtils.load_cookies(plugin_cookies)
+        uid=user.user_id, plugin_cookies=PluginUtils.load_cookies(plugin_cookies)
     )
 
 
-def encrypt_src_password(key: str, src_pwd: str) -> str:
+def encrypt_src_data(key: str, src_data: str) -> str:
     cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
-    return cipher.encrypt(pad(src_pwd.encode("utf-8"), AES.block_size)).hex()
+    return cipher.encrypt(pad(src_data.encode("utf-8"), AES.block_size)).hex()
 
 
-def decrypt_src_password(key: str, encrypted_pwd: str) -> str:
+def decrypt_src_data(key: str, encrypted_data: str) -> str:
     cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
-    return unpad(cipher.decrypt(bytes.fromhex(encrypted_pwd)), AES.block_size).decode(
+    return unpad(cipher.decrypt(bytes.fromhex(encrypted_data)), AES.block_size).decode(
         "utf-8"
     )

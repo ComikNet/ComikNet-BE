@@ -5,9 +5,9 @@ from typing import Any
 
 import nest_asyncio
 
-from Models.comic import BaseComicInfo
+from Models.comic import BaseComicInfo, ComicInfo
 from Models.response import StandardResponse
-from Models.user import User, UserData
+from Models.user import UserData
 
 nest_asyncio.apply()
 
@@ -17,6 +17,7 @@ class BasePlugin(ABC):
     def on_load(self) -> bool:
         pass
 
+    @abstractmethod
     def on_unload(self) -> None:
         pass
 
@@ -24,10 +25,18 @@ class BasePlugin(ABC):
     def search(self, keyword: str) -> list[BaseComicInfo]:
         pass
 
+    @abstractmethod
+    def album(self, album_id: str) -> list[ComicInfo]:
+        pass
+
 
 class IAuth(ABC):
+    auto_login: bool
+
     @abstractmethod
-    async def login(self, body: dict[str, str], user_data: UserData) -> StandardResponse:
+    async def login(
+        self, body: dict[str, str], user_data: UserData
+    ) -> StandardResponse:
         pass
 
 

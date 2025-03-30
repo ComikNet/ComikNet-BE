@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class User(BaseModel):
-    uid: str
+    user_id: str
     email: str
     username: str
     created_at: datetime
@@ -38,3 +38,9 @@ class UserData:
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class TokenData(BaseModel):
+    sub: str
+    id: str
+    exp: datetime | None = None

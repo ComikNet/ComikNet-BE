@@ -1,0 +1,18 @@
+[security]
+secret_key =
+
+[database]
+host =
+port =
+name =
+username =
+password =
+
+[email]
+host =
+port =
+address =
+password =
+
+[plugin]
+strict_load = false

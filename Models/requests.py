@@ -2,9 +2,8 @@ from pydantic import BaseModel
 
 
 class SourceStorageReq(BaseModel):
-    account: str
-    src_pwd: str
-    key_pwd: str
+    password: str
+    data: dict[str, str]
 
 
 class ComicSearchReq(BaseModel):

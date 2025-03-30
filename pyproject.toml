@@ -1,27 +1,20 @@
-[tool.poetry]
-name = "comiknet-be"
-version = "0.0.6"
-description = ""
-authors = ["BiDuang <me@biduang.cn>"]
+[project]
+name = "ComikNet-BE"
+version = "0.1.0"
+description = "Backend service for ComikNet project using FastAPI"
 license = "Apache-2.0"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.12"
-fastapi = "^0.109.0"
-SQLAlchemy = "^2.0.25"
-python-jose = { extras = ["cryptography"], version = "^3.3.0" }
-passlib = { extras = ["bcrypt"], version = "^1.7.4" }
-psycopg2 = "^2.9.9"
-uvicorn = "^0.26.0"
-python-multipart = "^0.0.6"
-pycryptodome = "^3.20.0"
-rich = "^13.7.0"
-slowapi = "^0.1.8"
-toml = "^0.10.2"
-nest-asyncio = "^1.6.0"
-pymysql = "^1.1.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.12"
+dependencies = [
+    "aiocache>=0.12.3",
+    "bcrypt>=4.3.0",
+    "fastapi[standard]>=0.115.12",
+    "mysqlclient>=2.2.7",
+    "nest-asyncio>=1.6.0",
+    "pycryptodome>=3.22.0",
+    "pyjwt>=2.10.1",
+    "pymysql>=1.1.1",
+    "slowapi>=0.1.9",
+    "sqlalchemy[asyncio]>=2.0.40",
+    "toml>=0.10.2",
+]

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from Models.requests import ComicSearchReq
-from Models.response import ExceptionResponse, StandardResponse
+from Models.response import StandardResponse
 from Models.user import User, UserData
 from Services.Modulator.manager import plugin_manager
 from Services.Security.user import get_current_user, get_user_data
@@ -21,7 +21,7 @@ async def get_favor(
     user_data: UserData = Depends(get_user_data),
 ):
     if (source := plugin_manager.get_source(src_id)) is None:
-        raise ExceptionResponse.not_found
+        raise HTTPException(status_code=404, detail="Source not found")
 
     if (resp := source.try_call("get_favor", user_data, data)) is not None:
         return resp
@@ -32,11 +32,16 @@ async def get_favor(
 @comic_router.get("/{src_id}/album/{album_id}")
 async def get_album(src_id: str, album_id: str, user: User = Depends(get_current_user)):
     if (source := plugin_manager.get_source(src_id)) is None:
-        raise ExceptionResponse.not_found
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    pass
 
 
 @comic_router.get("/{src_id}/album/{album_id}/images/{chapter_id}")
 async def get_chapter_images(
     src_id: str, album_id: str, chapter_id: str, user: User = Depends(get_current_user)
 ):
+    if (source := plugin_manager.get_source(src_id)) is None:
+        raise HTTPException(status_code=404, detail="Source not found")
+
     pass

@@ -1,20 +1,13 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-from Configs.config import config
+from Services.Config.config import config
 
-protocol = config.get_config("database", "protocol")
-host = config.get_config("database", "host")
-port = config.get_config("database", "port")
-db = config.get_config("database", "database")
-user = config.get_config("database", "user")
-pwd = config.get_config("database", "password")
-auth = f"{user}:{pwd}@" if user and pwd else ""
-if not host or not port or not db:
-    raise ValueError("Please complete the database configuration")
+engine = create_engine(
+    f"mysql://{config.database.username}:{config.database.password}@{config.database.host}:{config.database.port}/{config.database.name}",
+    connect_args={"connect_timeout": 10},
+)
 
-engine = create_engine(f"{protocol}://{auth}{host}:{port}/{db}")
 SessionLocal = sessionmaker(autocommit=False, bind=engine, expire_on_commit=True)
 Base = declarative_base()
 

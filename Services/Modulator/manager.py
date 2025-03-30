@@ -8,18 +8,15 @@ from typing import Set
 
 import toml
 
-from Configs.config import config
 from Models.plugins import BasePlugin, Plugin
+from Services.Config.config import config
 
 logger = logging.getLogger(__name__)
 
 
 class PluginManager:
     def __init__(self):
-        if strict := config.get_config("plugin", "strict_load") is None:
-            self.strict = False
-        else:
-            self.strict = strict
+        self.strict = config.plugin.strict_load
         self.plugins: Set[Plugin] = set()
         self.registered_source: Set[str] = set()
 
@@ -94,10 +91,11 @@ class PluginManager:
         except KeyError:
             logger.error(f"Failed to load plugin {plugin_dir.name}'s information")
             return False
-        except:
+        except Exception as e:
             logger.error(
                 f"Unknown error occurred while loading plugin {plugin_dir.name}"
             )
+            logger.exception(e)
             return False
 
     def unload_plugin(self) -> None:
@@ -130,7 +128,7 @@ class PluginUtils:
                     cookies[src] = BaseCookie[str](plugin_cookies[src])
                 else:
                     cookies[src] = BaseCookie[str]()
-        except:
+        except Exception:
             logger.warning("Failed to load cookies")
 
         return cookies

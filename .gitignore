@@ -182,8 +182,12 @@ pyrightconfig.json
 # poetry version lock
 poetry.lock
 
-# personal config
-Configs/config.json
+# configs
+Services/Config/config.toml
+Services/Config/config.json
 
 # plugins
 Plugins/*
+
+# version lock
+uv.lock

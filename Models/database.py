@@ -1,22 +1,23 @@
-from sqlalchemy import INT, TEXT, TIMESTAMP, Column
+from datetime import datetime
+
+from sqlalchemy import DATE, TEXT, VARCHAR, PrimaryKeyConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
 from Services.Database.database import Base
 
 
 class UserDb(Base):
     __tablename__ = "user"
-    id = Column(INT, unique=True, primary_key=True, index=True, nullable=False, autoincrement=True)
-    uid = Column(TEXT, unique=True, index=True, nullable=False)
-    username = Column(TEXT, unique=True, index=True, nullable=False)
-    email = Column(TEXT, unique=True, nullable=False)
-    hashed_password = Column(TEXT, nullable=False)
-    created_at = Column(TIMESTAMP, nullable=False)
+    user_id: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
+    username: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(TEXT, nullable=False)
+    password: Mapped[str] = mapped_column(TEXT, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(DATE, nullable=True)
 
 
 class PwdDb(Base):
     __tablename__ = "src_pwd"
-    id = Column(INT, unique=True, primary_key=True, index=True, nullable=False, autoincrement=True)
-    source = Column(TEXT, index=True, nullable=False)
-    uid = Column(TEXT, index=True, nullable=False)
-    account = Column(TEXT, nullable=False)
-    pwd = Column(TEXT, nullable=False)
+    __table_args__ = PrimaryKeyConstraint("user_id", "source")
+    user_id: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    source: Mapped[str] = mapped_column(TEXT, nullable=False)
+    data: Mapped[str] = mapped_column(TEXT, nullable=False)
