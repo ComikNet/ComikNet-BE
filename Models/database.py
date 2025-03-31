@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 from sqlalchemy import DATE, TEXT, VARCHAR, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -12,7 +12,9 @@ class UserDb(Base):
     username: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False)
     email: Mapped[str] = mapped_column(TEXT, nullable=False)
     password: Mapped[str] = mapped_column(TEXT, nullable=False)
-    created_at: Mapped[datetime | None] = mapped_column(DATE, nullable=True)
+    created_at: Mapped[date] = mapped_column(
+        DATE, nullable=False, default_factory=date.today
+    )
 
 
 class PwdDb(Base):

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 from http.cookies import BaseCookie
 
 from pydantic import BaseModel
@@ -9,7 +9,7 @@ class User(BaseModel):
     user_id: str
     email: str
     username: str
-    created_at: datetime
+    created_at: date
 
 
 class UserData:

@@ -3,6 +3,7 @@ from typing import Annotated
 
 import jwt
 from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from fastapi import Cookie, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
@@ -72,12 +73,17 @@ def get_user_data(
 
 
 def encrypt_src_data(key: str, src_data: str) -> str:
-    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
-    return cipher.encrypt(pad(src_data.encode("utf-8"), AES.block_size)).hex()
+    iv = get_random_bytes(AES.block_size)
+    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_CBC, iv)
+    encrypted_data = iv + cipher.encrypt(pad(src_data.encode("utf-8"), AES.block_size))
+    return encrypted_data.hex()
 
 
 def decrypt_src_data(key: str, encrypted_data: str) -> str:
-    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_ECB)
-    return unpad(cipher.decrypt(bytes.fromhex(encrypted_data)), AES.block_size).decode(
-        "utf-8"
+    encrypted_data_bytes = bytes.fromhex(encrypted_data)
+    iv = encrypted_data_bytes[: AES.block_size]
+    cipher = AES.new(pad(key.encode("utf-8"), AES.block_size), AES.MODE_CBC, iv)
+    decrypted_data = unpad(
+        cipher.decrypt(encrypted_data_bytes[AES.block_size :]), AES.block_size
     )
+    return decrypted_data.decode("utf-8")

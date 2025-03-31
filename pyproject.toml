@@ -1,6 +1,6 @@
 [project]
 name = "ComikNet-BE"
-version = "0.1.0"
+version = "0.2.0"
 description = "Backend service for ComikNet project using FastAPI"
 license = "Apache-2.0"
 readme = "README.md"
@@ -18,3 +18,6 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.40",
     "toml>=0.10.2",
 ]
+
+[tool.uv.workspace]
+members = ["Plugins/*"]
