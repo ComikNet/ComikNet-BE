@@ -26,7 +26,7 @@ class BasePlugin(ABC):
         pass
 
     @abstractmethod
-    def album(self, album_id: str) -> list[ComicInfo]:
+    def album(self, album_id: str) -> ComicInfo:
         pass
 
 

@@ -29,10 +29,10 @@ For Red Hat / CentOS:
 sudo yum install python3-devel mysql-devel pkgconfig
 ```
 
-Restore the dependencies:
+Restore the dependencies(Include the plugins' dependencies):
 
 ```bash
-uv sync
+uv sync --all-packages
 ```
 
 Modify the configuration file located at `Services/Config/config.toml.sample` and rename it to `config.toml`.

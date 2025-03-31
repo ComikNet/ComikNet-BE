@@ -29,11 +29,16 @@ class PluginConfig(BaseModel):
     strict_load: bool
 
 
+class LogConfig(BaseModel):
+    log_level: str
+
+
 class Config(BaseModel):
     security: SecurityConfig
     database: DatabaseConfig
     email: EmailConfig
     plugin: PluginConfig
+    log: LogConfig = LogConfig(log_level="INFO")
 
     @classmethod
     def load(cls):

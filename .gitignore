@@ -183,5 +183,9 @@ Services/Config/config.json
 # plugins
 Plugins/*/
 
+# logs
+Logs/*.lock
+Logs/*.log.*
+
 # version lock
 uv.lock

@@ -39,7 +39,7 @@ def _send_email(addr: str, subject: str, body: str):
 
 
 def send_captcha(addr: str, purpose: Purpose, ip: str) -> str:
-    captcha = str(secure_rng.randrange(10000, 99999))
+    captcha = str(secure_rng.randrange(100001, 999999))
     body = captcha_template.format(captcha=captcha, purpose=purpose.__str__(), ip=ip)
     _send_email(addr, purpose.__str__(), body)
     return captcha

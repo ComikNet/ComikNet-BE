@@ -16,3 +16,6 @@ password =
 
 [plugin]
 strict_load = false
+
+# [log]
+# log_level =  # Set to debug, info, warning, error, or critical

@@ -1,21 +1,21 @@
 import importlib
 import json
-import logging
 import os
-from http.cookies import BaseCookie
 from pathlib import Path
 from typing import Set
+import logging
 
 import toml
+from packaging.version import Version, parse
 
 from Models.plugins import BasePlugin, Plugin
 from Services.Config.config import config
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("[CNM]")
 
 
 class PluginManager:
-    cnm_version = "0.3.1"
+    cnm_version = Version("0.3.1")
 
     def __init__(self):
         self.strict = config.plugin.strict_load
@@ -30,11 +30,15 @@ class PluginManager:
                 if not self.load_plugin(
                     Path(os.path.join("Plugins", plugin)).resolve()
                 ):
-                    logger.error("An error occurred while loading plugins")
+                    logger.error("An error occurred while loading plugin")
                     if self.strict:
+                        logger.error(
+                            f"According to **STRICT** mode, server will abort if plugin {plugin} fails to load"
+                        )
                         raise RuntimeError("An error occurred while loading plugins")
 
     def load_plugin(self, plugin_dir: Path) -> bool:
+        logger.info(f"Loading plugin {plugin_dir.name}")
         try:
             with open(
                 plugin_dir.joinpath("pyproject.toml"), "r", encoding="utf-8"
@@ -45,15 +49,30 @@ class PluginManager:
                 logger.warning(f"Plugin {plugin_name} already loaded")
                 return False
 
+            version = parse(plugin_info["tool"]["cnm"]["version"])
+            if (
+                self.cnm_version.major != version.major
+                or self.cnm_version.minor != version.minor
+            ):
+                logger.error(
+                    f"Plugin {plugin_name}'s CNM version {version} is not compatible with server's CNM version {self.cnm_version}"
+                )
+                return False
+
             src_list: list[str] = []
             for src in plugin_info["tool"]["cnm"]["source"]:
+                if len(src) > 10:
+                    logger.error(
+                        f"Failed to load {plugin_name}, source id {src} is too long"
+                    )
+                    return False
                 if src in self.registered_source:
                     logger.error(
                         f"Failed to load {plugin_name}, source {plugin_info['plugin']['source']} has already been registered"
                     )
                     return False
                 else:
-                    logger.info(f"Registering source {src}")
+                    logger.info(f"Registering source {src}...")
                     src_list.append(src)
 
             module = importlib.import_module(f"Plugins.{plugin_dir.name}.main")
@@ -65,9 +84,9 @@ class PluginManager:
                         Plugin(
                             name=plugin_name,
                             version=plugin_info["project"]["version"],
-                            cnm_version=plugin_info["plugin"]["cnm"]["version"],
-                            source=plugin_info["plugin"]["cnm"]["source"],
-                            service=plugin_info["cnm"]["service"],
+                            cnm_version=plugin_info["tool"]["cnm"]["version"],
+                            source=plugin_info["tool"]["cnm"]["source"],
+                            service=plugin_info["tool"]["cnm"]["service"],
                             instance=instance,
                         )
                     )
@@ -81,14 +100,16 @@ class PluginManager:
                 return False
         except ModuleNotFoundError as module_err:
             logger.error(
-                f"Failed to load {plugin_dir.name}, plugin requires some dependencies: {module_err.msg}"
+                f" Failed to load {plugin_dir.name}, plugin requires some dependencies: {module_err.msg}"
             )
             return False
         except FileNotFoundError:
             logger.error(f"Failed to load plugin {plugin_dir.name}'s information")
             return False
         except ImportError:
-            logger.error(f"Failed to import plugin {plugin_dir.name}'s main module")
+            logger.error(
+                f"Failed to import plugin {plugin_dir.name}'s main module"
+            )
             return False
         except KeyError:
             logger.error(f"Failed to load plugin {plugin_dir.name}'s information")
@@ -100,7 +121,7 @@ class PluginManager:
             logger.exception(e)
             return False
 
-    def unload_plugin(self) -> None:
+    def unload_plugins(self) -> None:
         while len(self.plugins) > 0:
             plugin = self.plugins.pop()
             plugin.instance.on_unload()
@@ -114,23 +135,27 @@ class PluginManager:
 
 class PluginUtils:
     @staticmethod
-    def load_cookies(cookies_str: str | None) -> dict[str, BaseCookie[str]]:
-        cookies = dict[str, BaseCookie[str]]()
-        if cookies_str is None or cookies_str == "":
-            return cookies
+    def load_cookies(cookies_str: str | None) -> dict[str, dict[str, str]]:
+        if not cookies_str:
+            return {}
 
         try:
-            plugin_cookies: dict[str, str] = json.loads(cookies_str)
+            plugin_cookies = json.loads(cookies_str)
+            if not isinstance(plugin_cookies, dict):
+                raise ValueError("Invalid cookies format")
 
-            for src in plugin_manager.registered_source:
-                if src in plugin_cookies:
-                    cookies[src] = BaseCookie[str](plugin_cookies[src])
-                else:
-                    cookies[src] = BaseCookie[str]()
-        except Exception:
-            logger.warning("Failed to load cookies")
+            return {
+                src: plugin_cookies.get(src, {})
+                for src in plugin_manager.registered_source
+            }
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"Failed to load cookies: {e}")
+        except Exception as e:
+            logger.exception(
+                "Unexpected error occurred while loading cookies", exc_info=e
+            )
 
-        return cookies
+        return {}
 
 
 plugin_manager = PluginManager()

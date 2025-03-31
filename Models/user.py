@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from http.cookies import BaseCookie
 
 from pydantic import BaseModel
 
@@ -14,24 +13,28 @@ class User(BaseModel):
 
 class UserData:
     uid: str
-    plugin_cookies: dict[str, BaseCookie[str]]
+    plugin_cookies: dict[str, dict[str, str]] | None
 
-    def __init__(self, uid: str, plugin_cookies: dict[str, BaseCookie[str]]):
+    def __init__(
+        self, uid: str, plugin_cookies: dict[str, dict[str, str]] | None = None
+    ) -> None:
         self.uid = uid
         self.plugin_cookies = plugin_cookies
 
-    def set_src_cookies(self, src: str, cookies: BaseCookie[str]) -> None:
-        self.plugin_cookies[src] = cookies
+    def set_src_cookies(self, src: str, cookies: dict[str, str | None]) -> None:
+        if self.plugin_cookies is None:
+            self.plugin_cookies = dict()
+        _cookies = {k: v for k, v in cookies.items() if v is not None}
+        self.plugin_cookies[src] = _cookies
 
-    def get_src_cookies(self, src: str) -> BaseCookie[str]:
-        if src in self.plugin_cookies:
-            return self.plugin_cookies[src]
-        else:
-            return BaseCookie[str]()
+    def get_src_cookies(self, src: str) -> dict[str, str]:
+        return self.plugin_cookies.get(src, dict()) if self.plugin_cookies else dict()
 
     def __str__(self):
-        return json.dumps(
-            {k: v.output(header="").strip() for k, v in self.plugin_cookies.items()}
+        return (
+            json.dumps(self.plugin_cookies, ensure_ascii=False)
+            if self.plugin_cookies
+            else "{}"
         )
 
 
