@@ -9,3 +9,4 @@ class SourceStorageReq(BaseModel):
 class ComicSearchReq(BaseModel):
     sources: list[str]
     keyword: str
+    extras: dict[str, str] | None = None

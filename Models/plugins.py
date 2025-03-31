@@ -22,11 +22,11 @@ class BasePlugin(ABC):
         pass
 
     @abstractmethod
-    def search(self, keyword: str) -> list[BaseComicInfo]:
+    def search(self, keyword: str, **kwargs) -> list[BaseComicInfo]:
         pass
 
     @abstractmethod
-    def album(self, album_id: str) -> ComicInfo:
+    def album(self, album_id: str, **kwargs) -> ComicInfo:
         pass
 
 
