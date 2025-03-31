@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class PluginManager:
+    cnm_version = "0.3.1"
+
     def __init__(self):
         self.strict = config.plugin.strict_load
         self.plugins: Set[Plugin] = set()
@@ -33,21 +35,21 @@ class PluginManager:
                         raise RuntimeError("An error occurred while loading plugins")
 
     def load_plugin(self, plugin_dir: Path) -> bool:
-        if plugin_dir.name in self.plugins:
-            logger.warning(f"Plugin {plugin_dir.name} already loaded")
-            return False
-
         try:
             with open(
-                plugin_dir.joinpath(f"{plugin_dir.name}.toml"), "r", encoding="utf-8"
+                plugin_dir.joinpath("pyproject.toml"), "r", encoding="utf-8"
             ) as f:
                 plugin_info = toml.load(f)
 
+            if (plugin_name := plugin_info["project"]["name"]) in self.plugins:
+                logger.warning(f"Plugin {plugin_name} already loaded")
+                return False
+
             src_list: list[str] = []
-            for src in plugin_info["plugin"]["source"]:
+            for src in plugin_info["tool"]["cnm"]["source"]:
                 if src in self.registered_source:
                     logger.error(
-                        f"Failed to load {plugin_dir.name}, {plugin_info['plugin']['source']} has already been registered"
+                        f"Failed to load {plugin_name}, source {plugin_info['plugin']['source']} has already been registered"
                     )
                     return False
                 else:
@@ -61,11 +63,11 @@ class PluginManager:
                 if instance.on_load():
                     self.plugins.add(
                         Plugin(
-                            name=plugin_info["description"]["name"],
-                            version=plugin_info["description"]["version"],
-                            cnm_version=plugin_info["plugin"]["cnm-version"],
-                            source=plugin_info["plugin"]["source"],
-                            service=plugin_info["service"],
+                            name=plugin_name,
+                            version=plugin_info["project"]["version"],
+                            cnm_version=plugin_info["plugin"]["cnm"]["version"],
+                            source=plugin_info["plugin"]["cnm"]["source"],
+                            service=plugin_info["cnm"]["service"],
                             instance=instance,
                         )
                     )
@@ -102,15 +104,12 @@ class PluginManager:
         while len(self.plugins) > 0:
             plugin = self.plugins.pop()
             plugin.instance.on_unload()
-            logger.info(f"Unloaded plugin {plugin.name}")
+            logger.info(f"Plugin {plugin.name} unloaded")
 
     def get_source(self, source: str) -> Plugin | None:
-        if source in self.registered_source:
-            for plugin in self.plugins:
-                if source in plugin.source:
-                    return plugin
-        else:
-            return None
+        return next(
+            (plugin for plugin in self.plugins if source in plugin.source), None
+        )
 
 
 class PluginUtils:
